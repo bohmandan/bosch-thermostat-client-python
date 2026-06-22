@@ -285,34 +285,6 @@
         }
     },
     "sensors": {
-        "total_consumed_energy": {
-            "id": "/heatSources/total/energyMonitoring/consumedEnergy",
-            "type": "recording",
-            "unit_of_measurement": "kWh",
-            "device_class": "energy",
-            "state_class": "total_increasing"
-        },
-        "compressor_consumed_energy": {
-            "id": "/heatSources/total/energyMonitoring/compressor",
-            "type": "recording",
-            "unit_of_measurement": "kWh",
-            "device_class": "energy",
-            "state_class": "total_increasing"
-        },
-        "eheater_consumed_energy": {
-            "id": "/heatSources/total/energyMonitoring/eheater",
-            "type": "recording",
-            "unit_of_measurement": "kWh",
-            "device_class": "energy",
-            "state_class": "total_increasing"
-        },
-        "thermal_output_produced": {
-            "id": "/heatSources/total/energyMonitoring/outputProduced",
-            "type": "recording",
-            "unit_of_measurement": "kWh",
-            "device_class": "energy",
-            "state_class": "total_increasing"
-        },        
         "outdoor_t1": {
             "id": "/system/sensors/temperatures/outdoor_t1",
             "name": "Outdoor temperature",
@@ -403,7 +375,7 @@
             "uri": "/recordings",
             "deep": 4,
             "sensorType": "recording",
-            "state_class": "total",
+            "state_class": "total_increasing",
             "device_class": "energy"
         }
     ],
