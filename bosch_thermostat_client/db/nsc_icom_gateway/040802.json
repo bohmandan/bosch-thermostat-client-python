@@ -286,28 +286,28 @@
     },
     "sensors": {
         "total_consumed_energy": {
-            "path": "/heatSources/total/energyMonitoring/consumedEnergy",
+            "id": "/heatSources/total/energyMonitoring/consumedEnergy",
             "type": "recording",
             "unit_of_measurement": "kWh",
             "device_class": "energy",
             "state_class": "total_increasing"
         },
         "compressor_consumed_energy": {
-            "path": "/heatSources/total/energyMonitoring/compressor",
+            "id": "/heatSources/total/energyMonitoring/compressor",
             "type": "recording",
             "unit_of_measurement": "kWh",
             "device_class": "energy",
             "state_class": "total_increasing"
         },
         "eheater_consumed_energy": {
-            "path": "/heatSources/total/energyMonitoring/eheater",
+            "id": "/heatSources/total/energyMonitoring/eheater",
             "type": "recording",
             "unit_of_measurement": "kWh",
             "device_class": "energy",
             "state_class": "total_increasing"
         },
         "thermal_output_produced": {
-            "path": "/heatSources/total/energyMonitoring/outputProduced",
+            "id": "/heatSources/total/energyMonitoring/outputProduced",
             "type": "recording",
             "unit_of_measurement": "kWh",
             "device_class": "energy",
