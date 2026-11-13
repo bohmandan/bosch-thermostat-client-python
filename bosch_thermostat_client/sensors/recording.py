@@ -18,6 +18,8 @@ from datetime import datetime, timedelta
 
 _LOGGER = logging.getLogger(__name__)
 
+MAX_FETCH_RANGE = timedelta(days=31)
+
 
 class RecordingSensor(Sensor):
     def __init__(self, path: str, **kwargs) -> None:
@@ -76,15 +78,27 @@ class RecordingSensor(Sensor):
         self, start_time: datetime, stop_time: datetime
     ) -> dict:
         async with self._lock:
+            if stop_time - start_time > MAX_FETCH_RANGE:
+                _LOGGER.warning(
+                    "Limiting recording fetch for %s to the last %s days.",
+                    self.name,
+                    MAX_FETCH_RANGE.days,
+                )
+                start_time = stop_time - MAX_FETCH_RANGE
             current_date = start_time
             while current_date < stop_time:
                 uri = self.build_uri(time=current_date)
                 data = await self._connector.get(uri)
+                day = current_date
+                # Always move on: an empty answer used to retry the same day
+                # forever, flooding the gateway.
+                current_date += timedelta(days=1)
                 if not data:
+                    _LOGGER.debug("Empty recording for %s at %s.", self.name, uri)
                     continue
                 if RECORDING in data:
                     for idx, recording in enumerate(data[RECORDING]):
-                        _d = current_date.replace(
+                        _d = day.replace(
                             hour=idx, minute=0, second=0, microsecond=0
                         )
                         val = (
@@ -99,7 +113,6 @@ class RecordingSensor(Sensor):
                                 "d": _d,
                                 VALUE: val,
                             }
-                current_date += timedelta(days=1)
             return self._past_data
 
     @property
