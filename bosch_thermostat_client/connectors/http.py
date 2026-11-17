@@ -30,6 +30,7 @@ COOLDOWN_START = 120  # seconds of silence after the first trip
 COOLDOWN_MAX = 1800  # cap for the doubling cooldown
 SLOW_RESPONSE = 5.0  # seconds; responses slower than this are logged
 HISTORY_SIZE = 300  # requests kept in the flight recorder
+MISSING_PATH_TTL = 6 * 3600  # seconds a 404 path is not asked for again
 
 
 class _GatewayHealth:
@@ -49,6 +50,9 @@ class _GatewayHealth:
         self.total_requests = 0
         self.total_failures = 0
         self.lock = asyncio.Lock()
+        # GET paths that answered 404 -> monotonic time to try again. The
+        # integration asks for some paths every cycle that a model lacks.
+        self.missing: dict[str, float] = {}
 
     def record(self, method: str, path: str, outcome: str, elapsed: float) -> None:
         self.total_requests += 1
@@ -88,6 +92,10 @@ def _health_for(host: str) -> _GatewayHealth:
 
 class _TransportFailure(DeviceException):
     """Gateway did not answer at all (timeout, refused, reset)."""
+
+
+class _NotFound(DeviceException):
+    """Gateway answered 404: the path does not exist on this model."""
 
 
 class HttpConnector:
@@ -136,6 +144,8 @@ class HttpConnector:
             async with method(self._format_url(path), **kwargs) as res:
                 return await get_response(method.__name__, res)
         except ClientResponseError as err:
+            if err.status == 404:
+                raise _NotFound(f"URI {path} doesn not exist: {err}")
             raise DeviceException(f"URI {path} doesn not exist: {err}")
         except ClientConnectorError as err:
             raise _TransportFailure(f"Can't connect to {path}: {err}")
@@ -157,6 +167,11 @@ class HttpConnector:
                     f"Gateway {self._host} is backing off for another "
                     f"{int(health.open_until - now)}s after repeated failures; "
                     f"skipped {method_name.upper()} {path}."
+                )
+            if method_name == GET and health.missing.get(path, 0) > now:
+                raise DeviceException(
+                    f"URI {path} doesn not exist (404 earlier, not asked again "
+                    f"for {int(health.missing[path] - now)}s)."
                 )
             wait = MIN_REQUEST_GAP - (now - health.last_request_end)
             if wait > 0:
@@ -193,8 +208,14 @@ class HttpConnector:
                 finish(f"FAIL: {err}")
                 self._on_transport_failure(method_name, path, err)
                 raise
+            except _NotFound as err:
+                finish(f"error: {err}")
+                self._on_alive()
+                if method_name == GET:
+                    health.missing[path] = time.monotonic() + MISSING_PATH_TTL
+                raise
             except DeviceException as err:
-                # The gateway answered (404, wrong content type...): it is alive.
+                # The gateway answered (wrong content type...): it is alive.
                 finish(f"error: {err}")
                 self._on_alive()
                 raise
